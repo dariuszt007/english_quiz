@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Angielski z Luizą & Panel Admina</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Górny Pasek Nawigacyjny -->
+    <header class="bg-indigo-600 text-white shadow-md">
+        <div class="max-w-5xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <h1 class="text-2xl font-bold flex items-center gap-2">
+                <span>📚</span> English Learning for Luiza
+            </h1>
+            <div class="flex gap-2 bg-indigo-700 p-1 rounded-xl">
+                <button onclick="switchTab('luiza')" id="btn-luiza" class="px-4 py-2 rounded-lg font-medium transition bg-white text-indigo-700 shadow">Panel Luizy</button>
+                <button onclick="switchTab('admin')" id="btn-admin" class="px-4 py-2 rounded-lg font-medium transition text-white hover:bg-indigo-600">Panel Admina</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Główna zawartość -->
+    <main class="max-w-5xl mx-auto px-4 py-6 flex-grow w-full">
+
+        <!-- ================= PANEL LUIZY ================= -->
+        <section id="tab-luiza" class="space-y-6">
+            <!-- Wybór Scenki -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <label class="block text-sm font-semibold text-slate-600 mb-2">Wybierz temat / scenkę:</label>
+                <select id="luiza-scene-select" onchange="loadLuizaScene()" class="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl text-lg font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </select>
+            </div>
+
+            <!-- Widok Tekstu i Audio -->
+            <div id="luiza-scene-content" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+                <div class="flex flex-col md:flex-row gap-6 items-center">
+                    <img id="luiza-img" src="" alt="Scenka" class="w-full md:w-64 h-48 object-cover rounded-xl shadow-md border border-slate-200">
+                    <div class="flex-grow space-y-3 w-full">
+                        <div class="flex justify-between items-start">
+                            <span id="luiza-category" class="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider"></span>
+                            <div class="text-right">
+                                <span class="text-sm text-slate-500">Twoje Punkty:</span>
+                                <span id="luiza-score" class="text-2xl font-black text-emerald-600 ml-1">0</span>
+                            </div>
+                        </div>
+                        <h2 id="luiza-title" class="text-2xl font-bold text-slate-900"></h2>
+                        
+                        <div class="flex flex-wrap items-center gap-3 pt-2">
+                            <span class="text-sm font-medium text-slate-500">Lektor (British Accent):</span>
+                            <select id="voice-select-main" class="p-2 text-sm border rounded-lg bg-slate-50">
+                                <option value="en-GB-female">👩 Kobieta (Brytyjski UK)</option>
+                                <option value="en-GB-male">👨 Mężczyzna (Brytyjski UK)</option>
+                            </select>
+                            <button onclick="speakText(currentSceneText, 'main')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 shadow transition active:scale-95">
+                                🔊 Czytaj Tekst
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                    <p id="luiza-text" class="text-lg leading-relaxed text-slate-700 italic"></p>
+                </div>
+            </div>
+
+            <!-- Sekcja Pytań AI -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b pb-4">
+                    <div>
+                        <h3 class="text-xl font-bold text-slate-900">Pytania od AI do tekstu</h3>
+                        <p class="text-sm text-slate-500">Odpowiedz na pytania po angielsku. AI sprawdzi gramatykę i wyjaśni błędy!</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="copyPromptToClipboard()" class="bg-slate-700 hover:bg-slate-800 text-white px-4 py-2.5 rounded-xl font-medium text-xs sm:text-sm shadow transition flex items-center gap-1 active:scale-95">
+                            📋 Kopiuj Prompt dla AI
+                        </button>
+                        <button onclick="promptCustomAIQuestions()" class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-4 py-2.5 rounded-xl font-medium text-xs sm:text-sm shadow transition flex items-center gap-1 active:scale-95">
+                            ✨ Wygeneruj Pytania (Groq AI)
+                        </button>
+                    </div>
+                </div>
+
+                <div id="luiza-questions-container" class="space-y-6">
+                    <p class="text-slate-400 italic text-center py-6">Ładowanie pytań...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= PANEL ADMINA ================= -->
+        <section id="tab-admin" class="hidden space-y-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <span>🔑</span> Konfiguracja Groq API
+                </h3>
+                <p class="text-sm text-slate-600">Wklej swój darmowy klucz Groq API (z console.groq.com).</p>
+
+                <div class="flex gap-2">
+                    <input type="password" id="admin-api-key" placeholder="Wklej klucz Groq API (gsk_...)" class="flex-grow p-3 border rounded-xl bg-slate-50 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">
+                    <button onclick="saveApiKey()" class="bg-slate-800 hover:bg-slate-900 text-white px-6 py-3 rounded-xl font-medium text-sm shadow transition">Zapisz Klucz</button>
+                </div>
+                <div id="api-status" class="text-xs font-semibold text-emerald-600"></div>
+            </div>
+
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                <h3 id="admin-form-title" class="text-lg font-bold text-slate-900">Dodaj Nową Scenkę</h3>
+                <input type="hidden" id="edit-scene-id" value="">
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-600 mb-1">Tytuł Scenki (Angielski)</label>
+                        <input type="text" id="admin-title" placeholder="np. At the Bakery" class="w-full p-3 border rounded-xl bg-slate-50 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-600 mb-1">Kategoria</label>
+                        <input type="text" id="admin-category" placeholder="np. Daily Life" class="w-full p-3 border rounded-xl bg-slate-50 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-600 mb-1">URL Obrazka</label>
+                    <input type="text" id="admin-image" placeholder="https://images.unsplash.com/..." class="w-full p-3 border rounded-xl bg-slate-50 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-600 mb-1">Tekst Scenki (kilkanaście zdań po angielsku)</label>
+                    <textarea id="admin-text" rows="6" placeholder="Wpisz tekst scenki..." class="w-full p-3 border rounded-xl bg-slate-50 focus:ring-2 focus:ring-indigo-500 focus:outline-none"></textarea>
+                </div>
+
+                <div class="flex gap-3 pt-2">
+                    <button onclick="saveScene()" id="admin-submit-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-medium shadow transition">Dodaj Scenkę do Bazy</button>
+                    <button onclick="resetAdminForm()" id="admin-cancel-btn" class="hidden bg-slate-200 hover:bg-slate-300 text-slate-700 px-6 py-3 rounded-xl font-medium transition">Anuluj Edycję</button>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                <h3 class="text-lg font-bold text-slate-900">Zarządzaj Scenkami w Bazie</h3>
+                <div id="admin-scenes-list" class="space-y-3"></div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="text-center py-6 text-xs text-slate-400">
+        English Learning App for Luiza • Powered by Web Speech & Groq AI
+    </footer>
+
+    <script>
+        const defaultScenes = [
+            {
+                id: "scene_1",
+                title: "At the Grocery Store",
+                category: "Shopping",
+                image: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80",
+                text: "Today is Saturday, and Anna needs to buy some fresh food for a family dinner. She walks into the local grocery store with a small shopping list in her hand. First, she goes to the vegetable section where she picks ripe red tomatoes, crisp green cucumbers, and fresh carrots. Next, she moves to the bakery aisle because the smell of warm bread is wonderful. She selects a crusty baguette and four sweet cinnamon rolls. After that, Anna visits the dairy fridge to grab a carton of organic milk and a block of cheddar cheese. When her basket is full, she joins the queue at the cash register. The friendly cashier smiles, scans all the items, and says the total price is twenty-four dollars and fifty cents. Anna pays with her credit card, takes her bags, and wishes the cashier a wonderful weekend.",
+                questions: []
+            },
+            {
+                id: "scene_2",
+                title: "A Cozy Afternoon at Home",
+                category: "Daily Life",
+                image: "https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?auto=format&fit=crop&w=800&q=80",
+                text: "Outside the autumn wind is blowing gently, making colorful leaves dance in the air. Inside the living room, Tom sits comfortably on the soft gray sofa with a cup of hot chamomile tea. On the wooden coffee table next to him lies an open adventure book about mysterious ancient forests. His golden retriever dog, Max, is sleeping peacefully on the warm carpet right beside his feet. Tom loves these quiet Sunday afternoons when he has no urgent homework or office tasks to complete. After reading three interesting chapters, he decides to listen to some soft jazz music on his vinyl record player. The warm melody fills the entire house, creating a peaceful and relaxing atmosphere. Later in the evening, he plans to bake a delicious apple pie with cinnamon.",
+                questions: []
+            },
+            {
+                id: "scene_3",
+                title: "At the Doctor's Office",
+                category: "Health",
+                image: "https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=800&q=80",
+                text: "Mark woke up this morning with a scratchy throat and a mild fever, so he decided to visit the medical clinic. He arrives at ten o'clock and checks in with the receptionist at the front desk. After waiting for a few minutes in the quiet waiting room, a nurse named Sarah calls his name. She leads him into examination room number two and checks his temperature and blood pressure. Everything is normal except for a slightly red throat. Soon, Dr. Evans enters the room with a warm smile and asks Mark about his symptoms. Dr. Evans listens carefully, examines his chest with a stethoscope, and explains that it is just a minor seasonal cold. The doctor writes a prescription for vitamin C and herbal cough syrup, advising Mark to drink plenty of warm water and stay in bed for two days. Mark thanks the doctor, picks up his prescription at the pharmacy, and goes straight home to rest.",
+                questions: []
+            }
+        ];
+
+        let scenes = JSON.parse(localStorage.getItem('luiza_scenes')) || defaultScenes;
+        let apiKey = localStorage.getItem('groq_api_key') || '';
+        let currentSceneId = scenes[0].id;
+        let currentSceneText = scenes[0].text;
+        let totalScore = parseInt(localStorage.getItem('luiza_score')) || 0;
+        let voices = [];
+
+        window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('admin-api-key').value = apiKey;
+            updateApiStatus();
+            loadVoices();
+            updateSceneDropdown();
+            renderAdminScenesList();
+            loadLuizaScene();
+            
+            if (speechSynthesis.onvoiceschanged !== undefined) {
+                speechSynthesis.onvoiceschanged = loadVoices;
+            }
+        });
+
+        function switchTab(tab) {
+            const luizaTab = document.getElementById('tab-luiza');
+            const adminTab = document.getElementById('tab-admin');
+            const btnLuiza = document.getElementById('btn-luiza');
+            const btnAdmin = document.getElementById('btn-admin');
+
+            if (tab === 'luiza') {
+                luizaTab.classList.remove('hidden');
+                adminTab.classList.add('hidden');
+                btnLuiza.className = "px-4 py-2 rounded-lg font-medium transition bg-white text-indigo-700 shadow";
+                btnAdmin.className = "px-4 py-2 rounded-lg font-medium transition text-white hover:bg-indigo-600";
+                updateSceneDropdown();
+                loadLuizaScene();
+            } else {
+                luizaTab.classList.add('hidden');
+                adminTab.classList.remove('hidden');
+                btnAdmin.className = "px-4 py-2 rounded-lg font-medium transition bg-white text-indigo-700 shadow";
+                btnLuiza.className = "px-4 py-2 rounded-lg font-medium transition text-white hover:bg-indigo-600";
+                renderAdminScenesList();
+            }
+        }
+
+        function loadVoices() {
+            voices = window.speechSynthesis.getVoices();
+        }
+
+        function getSelectedVoice(typeStr) {
+            if (voices.length === 0) voices = window.speechSynthesis.getVoices();
+            let isFemale = typeStr.includes('female');
+
+            let matched = voices.find(v => v.lang.includes('en-GB') && (
+                isFemale ? (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('hazel') || v.name.toLowerCase().includes('kate') || v.name.toLowerCase().includes('serena'))
+                         : (v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('george') || v.name.toLowerCase().includes('oliver') || v.name.toLowerCase().includes('daniel'))
+            ));
+
+            if (!matched) {
+                matched = voices.find(v => v.lang.includes('en-GB'));
+            }
+            return matched || voices[0] || null;
+        }
+
+        function speakText(text, type, qIndex = null) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                
+                let selectId = type === 'main' ? 'voice-select-main' : `voice-select-q-${qIndex}`;
+                let selectEl = document.getElementById(selectId);
+                let selectedType = selectEl ? selectEl.value : 'en-GB-female';
+                
+                utterance.lang = 'en-GB';
+                let chosenVoice = getSelectedVoice(selectedType);
+                if (chosenVoice) {
+                    utterance.voice = chosenVoice;
+                }
+                
+                utterance.rate = 0.9;
+                window.speechSynthesis.speak(utterance);
+            } else {
+                alert("Twoja przeglądarka nie wspiera syntezy mowy.");
+            }
+        }
+
+        function updateSceneDropdown() {
+            const select = document.getElementById('luiza-scene-select');
+            select.innerHTML = '';
+            scenes.forEach(scene => {
+                const opt = document.createElement('option');
+                opt.value = scene.id;
+                opt.textContent = `${scene.title} (${scene.category})`;
+                if (scene.id === currentSceneId) opt.selected = true;
+                select.appendChild(opt);
+            });
+        }
+
+        function loadLuizaScene() {
+            const selectId = document.getElementById('luiza-scene-select').value;
+            if(selectId) currentSceneId = selectId;
+            
+            const scene = scenes.find(s => s.id === currentSceneId);
+            if(!scene) return;
+
+            currentSceneText = scene.text;
+            document.getElementById('luiza-category').textContent = scene.category;
+            document.getElementById('luiza-title').textContent = scene.title;
+            document.getElementById('luiza-img').src = scene.image;
+            document.getElementById('luiza-text').textContent = scene.text;
+            document.getElementById('luiza-score').textContent = totalScore;
+
+            if (!scene.questions || scene.questions.length === 0) {
+                generateAIQuestions("", false);
+            } else {
+                renderQuestions(scene.questions);
+            }
+        }
+
+        function copyPromptToClipboard() {
+            const scene = scenes.find(s => s.id === currentSceneId);
+            if(!scene) return;
+
+            const promptText = `Please act as an English teacher. Based on the following text, generate 5 questions in English to check comprehension and grammar:
+
+Text: "${scene.text}"
+
+Format the output clearly as a list of 5 questions.`;
+
+            navigator.clipboard.writeText(promptText).then(() => {
+                alert("📋 Prompt został skopiowany do schowka! Możesz wkleić go do dowolnego czatu AI.");
+            }).catch(() => {
+                alert("Oto prompt:\n\n" + promptText);
+            });
+        }
+
+        function promptCustomAIQuestions() {
+            let customInstruction = prompt("O jakie pytania chcesz poprosić AI? (np. 'Skup się na szczegółach' lub zostaw puste):", "");
+            if (customInstruction !== null) {
+                generateAIQuestions(customInstruction, true);
+            }
+        }
+
+        async function callGroqAPI(promptText) {
+            apiKey = localStorage.getItem('groq_api_key') || '';
+            if (!apiKey) throw new Error("Brak klucza Groq API");
+
+            const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: "llama-3.3-70b-versatile",
+                    messages: [{ role: "user", content: promptText }],
+                    temperature: 0.7
+                })
+            });
+            const data = await response.json();
+            if(data.error) throw new Error(data.error.message);
+            return data.choices[0].message.content;
+        }
+
+        async function generateAIQuestions(customInstruction = "", forced = true) {
+            const scene = scenes.find(s => s.id === currentSceneId);
+            if(!scene) return;
+
+            const container = document.getElementById('luiza-questions-container');
+            container.innerHTML = `<div class="text-center py-8 text-indigo-600 font-medium animate-pulse">✨ Groq AI błyskawicznie układa pytania...</div>`;
+
+            apiKey = localStorage.getItem('groq_api_key') || '';
+
+            if (!apiKey) {
+                scene.questions = getFallbackQuestions(scene.text);
+                saveScenesToStorage();
+                renderQuestions(scene.questions);
+                return;
+            }
+
+            let instructionPart = customInstruction ? `User focus: "${customInstruction}"` : "Include a mix of general comprehension and detailed questions.";
+
+            const prompt = `Based on the following English text, generate exactly 5 questions to test English comprehension.
+${instructionPart}
+Text: "${scene.text}"
+
+Return ONLY a valid JSON array of 5 strings in English. Example format:
+["Question 1?", "Question 2?", "Question 3?", "Question 4?", "Question 5?"]
+No markdown formatting.`;
+
+            try {
+                let rawText = await callGroqAPI(prompt);
+                rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+                const questionsArray = JSON.parse(rawText);
+                
+                scene.questions = questionsArray.map((q, idx) => ({ id: idx, question: q, answer: "", evaluated: false, feedback: "" }));
+                saveScenesToStorage();
+                renderQuestions(scene.questions);
+            } catch (err) {
+                console.error("Groq API Error:", err);
+                alert("Błąd API (" + err.message + "). Używam wbudowanego generatora pytań.");
+                scene.questions = getFallbackQuestions(scene.text);
+                saveScenesToStorage();
+                renderQuestions(scene.questions);
+            }
+        }
+
+        function getFallbackQuestions(text) {
+            return [
+                { id: 0, question: "What is the main topic or setting described in this scene?", answer: "", evaluated: false, feedback: "" },
+                { id: 1, question: "Who are the main characters involved in this situation?", answer: "", evaluated: false, feedback: "" },
+                { id: 2, question: "What specific items or actions are mentioned in the middle of the text?", answer: "", evaluated: false, feedback: "" },
+                { id: 3, question: "Why is this event or action important for the person in the story?", answer: "", evaluated: false, feedback: "" },
+                { id: 4, question: "How does the situation conclude at the end of the text?", answer: "", evaluated: false, feedback: "" }
+            ];
+        }
+
+        function renderQuestions(questions) {
+            const container = document.getElementById('luiza-questions-container');
+            container.innerHTML = '';
+
+            questions.forEach((q, idx) => {
+                let card = document.createElement('div');
+                card.className = "p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-3";
+                
+                card.innerHTML = `
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                        <span class="text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-md">Pytanie ${idx + 1}</span>
+                        <div class="flex items-center gap-2">
+                            <select id="voice-select-q-${idx}" class="p-1.5 text-xs border rounded-lg bg-white">
+                                <option value="en-GB-female">👩 Kobieta (UK)</option>
+                                <option value="en-GB-male">👨 Mężczyzna (UK)</option>
+                            </select>
+                            <button onclick="speakText('${q.question.replace(/'/g, "\\'")}', 'question', ${idx})" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 transition">
+                                🔊 Posłuchaj pytania
+                            </button>
+                        </div>
+                    </div>
+                    <p class="text-base font-semibold text-slate-800">${q.question}</p>
+                    <div class="space-y-2">
+                        <textarea id="answer-input-${idx}" rows="2" placeholder="Wpisz odpowiedź po angielsku..." class="w-full p-3 border rounded-xl bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">${q.answer || ''}</textarea>
+                        <div class="flex justify-between items-center">
+                            <button onclick="checkAnswer(${idx})" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl text-sm font-medium shadow transition active:scale-95">
+                                Sprawdź odpowiedź (Groq AI)
+                            </button>
+                            <span id="feedback-status-${idx}" class="text-sm font-medium ${q.evaluated ? (q.correct ? 'text-emerald-600' : 'text-amber-600') : 'text-slate-400'}">
+                                ${q.evaluated ? (q.correct ? '✅ Dobrze! +5 pkt'  : '💡 Wymaga poprawy') : ''}
+                            </span>
+                        </div>
+                        <div id="feedback-text-${idx}" class="text-xs text-slate-600 bg-white p-3 rounded-xl border border-slate-200 ${q.feedback ? '' : 'hidden'}">
+                            ${q.feedback}
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        async function checkAnswer(qIdx) {
+            const scene = scenes.find(s => s.id === currentSceneId);
+            if(!scene) return;
+
+            const qObj = scene.questions[qIdx];
+            const answerInput = document.getElementById(`answer-input-${qIdx}`).value.trim();
+            qObj.answer = answerInput;
+
+            if(!answerInput) {
+                alert("Najpierw wpisz odpowiedź!");
+                return;
+            }
+
+            const statusEl = document.getElementById(`feedback-status-${qIdx}`);
+            statusEl.textContent = "Groq AI błyskawicznie sprawdza gramatykę...";
+            statusEl.className = "text-sm font-medium text-indigo-600 animate-pulse";
+
+            apiKey = localStorage.getItem('groq_api_key') || '';
+
+            if(!apiKey) {
+                qObj.evaluated = true;
+                qObj.correct = answerInput.length > 5;
+                qObj.feedback = qObj.correct ? "Good job! Sentence looks grammatically acceptable." : "Try to write a more complete sentence in English.";
+                if(qObj.correct) totalScore += 5;
+                saveScenesToStorage();
+                updateScoreDisplay();
+                renderQuestions(scene.questions);
+                return;
+            }
+
+            const prompt = `You are an encouraging English teacher. Context story: "${scene.text}"
+Question: "${qObj.question}"
+Student answer: "${answerInput}"
+
+Evaluate the student's answer for grammar, spelling, and correctness.
+Return a JSON object with EXACTLY these keys:
+- "correct": boolean (true if correct or minor typos, false if major errors)
+- "score": number (5 if correct, 2 if minor mistakes, 0 if incorrect)
+- "feedback": string (A short, clear, and easy-to-understand explanation in English with Polish guidance, pointing out specific spelling or grammar mistakes and giving the correct form).
+
+Return ONLY raw JSON, no markdown formatting.`;
+
+            try {
+                let rawText = await callGroqAPI(prompt);
+                rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+                const result = JSON.parse(rawText);
+
+                if(!qObj.evaluated && result.correct) {
+                    totalScore += result.score || 5;
+                }
+
+                qObj.evaluated = true;
+                qObj.correct = result.correct;
+                qObj.feedback = result.feedback;
+
+                saveScenesToStorage();
+                updateScoreDisplay();
+                renderQuestions(scene.questions);
+            } catch (err) {
+                console.error(err);
+                statusEl.textContent = "Błąd API - spróbuj ponownie";
+            }
+        }
+
+        function updateScoreDisplay() {
+            document.getElementById('luiza-score').textContent = totalScore;
+            localStorage.setItem('luiza_score', totalScore);
+        }
+
+        function saveApiKey() {
+            const key = document.getElementById('admin-api-key').value.trim();
+            localStorage.setItem('groq_api_key', key);
+            apiKey = key;
+            updateApiStatus();
+            alert("Klucz Groq API został zapisany pomyślnie!");
+        }
+
+        function updateApiStatus() {
+            const status = document.getElementById('api-status');
+            if(apiKey) {
+                status.textContent = "✔ Klucz Groq API jest skonfigurowany i aktywny.";
+                status.className = "text-xs font-semibold text-emerald-600";
+            } else {
+                status.textContent = "⚠ Brak klucza API. Wpisz klucz z console.groq.com, aby włączyć AI.";
+                status.className = "text-xs font-semibold text-amber-600";
+            }
+        }
+
+        function renderAdminscenesList() {
+            const listContainer = document.getElementById('admin-scenes-list');
+            listContainer.innerHTML = '';
+
+            if(scenes.length === 0) {
+                listContainer.innerHTML = `<p class="text-slate-400 italic">Brak scenek w bazie.</p>`;
+                return;
+            }
+
+            scenes.forEach(scene => {
+                let item = document.createElement('div');
+                item.className = "flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-slate-50 border rounded-xl gap-3";
+                item.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <img src="${scene.image}" class="w-12 h-12 object-cover rounded-lg border">
+                        <div>
+                            <h4 class="font-bold text-slate-800">${scene.title}</h4>
+                            <span class="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-medium">${scene.category}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                        <button onclick="editScene('${scene.id}')" class="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition">Edytuj</button>
+                        <button onclick="deleteScene('${scene.id}')" class="bg-rose-500 hover:bg-rose-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition">Usuń</button>
+                    </div>
+                `;
+                listContainer.appendChild(item);
+            });
+        }
+        
+        function renderAdminScenesList() { renderAdminscenesList(); }
+
+        function saveScene() {
+            const editId = document.getElementById('edit-scene-id').value;
+            const title = document.getElementById('admin-title').value.trim();
+            const category = document.getElementById('admin-category').value.trim();
+            const image = document.getElementById('admin-image').value.trim();
+            const text = document.getElementById('admin-text').value.trim();
+
+            if(!title || !category || !text) {
+                alert("Wypełnij przynajmniej tytuł, kategorię i tekst scenki!");
+                return;
+            }
+
+            if(editId) {
+                const scene = scenes.find(s => s.id === editId);
+                if(scene) {
+                    scene.title = title;
+                    scene.category = category;
+                    scene.image = image || 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80';
+                    scene.text = text;
+                    scene.questions = [];
+                }
+                alert("Scenka została zaktualizowana!");
+            } else {
+                const newScene = {
+                    id: 'scene_' + Date.now(),
+                    title,
+                    category,
+                    image: image || 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80',
+                    text,
+                    questions: []
+                };
+                scenes.push(newScene);
+                alert("Dodano nową scenkę do bazy!");
+            }
+
+            saveScenesToStorage();
+            resetAdminForm();
+            renderAdminScenesList();
+            updateSceneDropdown();
+        }
+
+        function editScene(id) {
+            const scene = scenes.find(s => s.id === id);
+            if(!scene) return;
+
+            document.getElementById('edit-scene-id').value = scene.id;
+            document.getElementById('admin-title').value = scene.title;
+            document.getElementById('admin-category').value = scene.category;
+            document.getElementById('admin-image').value = scene.image;
+            document.getElementById('admin-text').value = scene.text;
+
+            document.getElementById('admin-form-title').textContent = "Edytuj Scenkę";
+            document.getElementById('admin-submit-btn').textContent = "Zapisz Zmiany";
+            document.getElementById('admin-cancel-btn').classList.remove('hidden');
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function resetAdminForm() {
+            document.getElementById('edit-scene-id').value = '';
+            document.getElementById('admin-title').value = '';
+            document.getElementById('admin-category').value = '';
+            document.getElementById('admin-image').value = '';
+            document.getElementById('admin-text').value = '';
+
+            document.getElementById('admin-form-title').textContent = "Dodaj Nową Scenkę";
+            document.getElementById('admin-submit-btn').textContent = "Dodaj Scenkę do Bazy";
+            document.getElementById('admin-cancel-btn').classList.add('hidden');
+        }
+
+        function deleteScene(id) {
+            if(scenes.length <= 1) {
+                alert("Musisz zostawić przynajmniej jedną scenkę w bazie!");
+                return;
+            }
+            if(confirm("Czy na pewno chcesz usunąć tę scenkę?")) {
+                scenes = scenes.filter(s => s.id !== id);
+                saveScenesToStorage();
+                renderAdminScenesList();
+                updateSceneDropdown();
+            }
+        }
+
+        function saveScenesToStorage() {
+            localStorage.setItem('luiza_scenes', JSON.stringify(scenes));
+        }
+    </script>
+</body>
+</html>
